@@ -1,0 +1,13 @@
+[workspace]
+members = [ "game-core",]
+
+[package]
+name = "jester"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ggez = "0.10.0-rc0"
+libloading = "0.9"
+game-core = { path = "./game-core" }
+anyhow = "1.0"
