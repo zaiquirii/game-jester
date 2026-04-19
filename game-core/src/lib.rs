@@ -1,36 +1,20 @@
-pub struct State {
-    counter: u32,
-}
+mod ecs;
+mod game;
+mod level;
 
-impl State {
-    pub fn new() -> Self {
-        Self { counter: 0 }
-    }
+pub use game::Game;
 
-    pub fn increment(&mut self) {
-        self.counter += 1;
-    }
-
-    pub fn decrement(&mut self) {
-        self.counter -= 1;
-    }
-
-    pub fn get_counter(&self) -> u32 {
-        self.counter
-    }
+#[unsafe(no_mangle)]
+pub fn init() -> Box<Game> {
+    Box::new(Game::new())
 }
 
 #[unsafe(no_mangle)]
-pub fn init() -> Box<State> {
-    Box::new(State::new())
+pub fn update(game: &mut Game, ctx: &mut ggez::Context) -> ggez::GameResult {
+    game.update(ctx)
 }
 
 #[unsafe(no_mangle)]
-pub fn update(state: &mut State) {
-    state.increment()
-}
-
-#[unsafe(no_mangle)]
-pub fn render(state: &mut State) {
-    println!("Counter: {}", state.get_counter());
+pub fn render(game: &mut Game, ctx: &mut ggez::Context) -> ggez::GameResult {
+    game.render(ctx)
 }

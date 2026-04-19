@@ -1,0 +1,1 @@
+Everytime I start working on a game in rust I want to implement an ECS first. I feel like its REQUIRED to have an ECS in order to make a game. And that is bullshit. It's just an arbitrary constraint I've put on myself that doesn't help me actually start (or finish) projects.

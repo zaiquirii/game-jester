@@ -7,3 +7,6 @@ edition = "2024"
 crate-type = ["rlib", "dylib"]
 
 [dependencies]
+ggez = "0.9.3"
+anyhow = "1.0"
+glam = "0.32"
