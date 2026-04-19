@@ -1,5 +1,5 @@
 use crate::ecs::{self, World};
-use crate::level::{GridEntityType, LevelData, PlayerAction, SokoGrid};
+use crate::level::{ActionResult, GridEntityType, LevelData, PlayerAction, SokoGrid};
 
 use ggez::glam::{Vec2, vec2};
 use ggez::graphics::{self, Color};
@@ -37,6 +37,7 @@ impl Game {
             let color = match renderable.grid_type {
                 GridEntityType::Player => Color::GREEN,
                 GridEntityType::Box => Color::RED,
+                GridEntityType::Space => Color::WHITE,
             };
             canvas.draw(
                 &graphics::Quad,
@@ -115,19 +116,36 @@ pub fn handle_grid_input_system(
     };
 
     if let Some(action) = action {
-        if let Some(updates) = current_level.accept_action(action) {
-            for update in updates {
+        let action_result = current_level.accept_action(action);
+        match action_result {
+            ActionResult::Failure { blocked_by } => {
                 println!(
-                    "entity: {:?}, type: {:?}, position: {:?}",
-                    update.entity.entity, update.entity.entity_type, update.entity.position
+                    "action failed, blocked by entity: {:?} at position: {:?}",
+                    blocked_by.entity, blocked_by.position
                 );
-                world
-                    .get_mut::<GridRenderable>(update.entity.entity)
-                    .expect(
+            }
+            ActionResult::Success(updates) => {
+                for update in updates {
+                    world.get_mut::<GridRenderable>(update.entity.entity).expect(
                         "attempted to update entity which does not have a GridRenderable component",
                     )
                     .position = update.entity.position;
+                }
             }
         }
+        // if let Some(updates) = current_level.accept_action(action) {
+        //     for update in updates {
+        //         println!(
+        //             "entity: {:?}, type: {:?}, position: {:?}",
+        //             update.entity.entity, update.entity.entity_type, update.entity.position
+        //         );
+        //         world
+        //             .get_mut::<GridRenderable>(update.entity.entity)
+        //             .expect(
+        //                 "attempted to update entity which does not have a GridRenderable component",
+        //             )
+        //             .position = update.entity.position;
+        //     }
+        // }
     }
 }

@@ -8,14 +8,11 @@ pub struct LevelData {
     pub player: IVec2,
 }
 
-pub struct CurrentLevel {
-    grid: SokoGrid,
-}
-
 #[derive(Clone, Copy, Debug)]
 pub enum GridEntityType {
     Player,
     Box,
+    Space,
 }
 
 #[derive(Clone, Copy)]
@@ -62,7 +59,7 @@ impl SokoGrid {
         };
     }
 
-    pub fn accept_action(&mut self, action: PlayerAction) -> Option<Vec<EntityUpdate>> {
+    pub fn accept_action(&mut self, action: PlayerAction) -> ActionResult {
         match action {
             PlayerAction::MoveLeft => self.move_player(-1, 0),
             PlayerAction::MoveRight => self.move_player(1, 0),
@@ -71,37 +68,110 @@ impl SokoGrid {
         }
     }
 
-    fn move_player(&mut self, dx: i32, dy: i32) -> Option<Vec<EntityUpdate>> {
+    fn move_player(&mut self, dx: i32, dy: i32) -> ActionResult {
         let mut updates = Vec::new();
 
         let delta = ivec2(dx, dy);
-        let target_player_position = self.player.position + delta;
-        if let Some(box_index) = self.box_at(target_player_position) {
-            let b = &mut self.boxes[box_index];
-            let prev = b.position;
-            b.position += delta;
-            updates.push(EntityUpdate {
-                entity: *b,
-                previous_position: prev,
-            });
+        let target_player_pos = self.player.position + delta;
+
+        match self.entity_type_at(target_player_pos) {
+            GridEntityType::Player => unreachable!(),
+            GridEntityType::Space => {
+                self.player.position = target_player_pos;
+                updates.push(EntityUpdate {
+                    entity: self.player,
+                    previous_position: self.player.position,
+                });
+            }
+            GridEntityType::Box => {
+                let target_box_pos = target_player_pos + delta;
+                let next_entity_type = self.entity_type_at(target_box_pos);
+
+                match next_entity_type {
+                    GridEntityType::Player => unreachable!(),
+                    GridEntityType::Box => {
+                        return ActionResult::Failure {
+                            blocked_by: self.boxes[self.box_at(target_box_pos).unwrap()],
+                        };
+                    }
+                    GridEntityType::Space => {
+                        self.player.position = target_player_pos;
+                        updates.push(EntityUpdate {
+                            entity: self.player,
+                            previous_position: self.player.position,
+                        });
+
+                        let box_index = self.box_at(target_player_pos).unwrap();
+                        self.boxes[box_index].position = target_box_pos;
+                        updates.push(EntityUpdate {
+                            entity: self.boxes[box_index],
+                            previous_position: target_player_pos,
+                        })
+                    }
+                }
+            }
         }
 
-        let previous_position = self.player.position;
-        self.player.position = target_player_position;
-        updates.push(EntityUpdate {
-            entity: self.player,
-            previous_position,
-        });
+        // let check_open_pos = target_player_pos;
 
-        if updates.len() > 0 {
-            Some(updates)
-        } else {
-            None
+        // match self.entity_type_at(check_open_pos) {
+        //     GridEntityType::Player => unreachable!(),
+        //     GridEntityType::Box => {
+        //         let check_box_pos = check_open_pos + delta;
+        //         if !self.is_open(check_box_pos) {
+        //             return ActionResult::Failure {
+        //                 blocked_by: self.entity_type_at(check_box_pos).unwrap(),
+        //             };
+        //         }
+        //     }
+        // }
+
+        // if !self.is_open(check_open_pos) {
+        //     return ActionResult::Failure {
+        //         blocked_by: self.entity_type_at(check_open_pos).unwrap(),
+        //     };
+        // }
+
+        // if let Some(box_index) = self.box_at(target_player_pos) {
+        //     let b = &mut self.boxes[box_index];
+        //     let prev = b.position;
+        //     b.position += delta;
+        //     updates.push(EntityUpdate {
+        //         entity: *b,
+        //         previous_position: prev,
+        //     });
+        // }
+
+        // let previous_position = self.player.position;
+        // self.player.position = target_player_pos;
+        // updates.push(EntityUpdate {
+        //     entity: self.player,
+        //     previous_position,
+        // });
+
+        ActionResult::Success(updates)
+    }
+
+    fn box_at(&self, pos: IVec2) -> Option<usize> {
+        self.boxes.iter().position(|b| b.position == pos)
+    }
+
+    fn is_open(&self, pos: IVec2) -> bool {
+        match self.entity_type_at(pos) {
+            GridEntityType::Player => false,
+            GridEntityType::Box => false,
+            GridEntityType::Space => true,
         }
     }
 
-    fn box_at(&mut self, pos: IVec2) -> Option<usize> {
-        self.boxes.iter_mut().position(|b| b.position.eq(&pos))
+    fn entity_type_at(&self, pos: IVec2) -> GridEntityType {
+        if let Some(_) = self.box_at(pos) {
+            GridEntityType::Box
+        } else if self.player.position == pos {
+            GridEntityType::Player
+        } else {
+            GridEntityType::Space
+        }
     }
 }
 
@@ -111,6 +181,11 @@ pub enum PlayerAction {
     MoveUp,
     MoveDown,
     // Undo,
+}
+
+pub enum ActionResult {
+    Success(Vec<EntityUpdate>),
+    Failure { blocked_by: GridEntity },
 }
 
 pub struct EntityUpdate {
