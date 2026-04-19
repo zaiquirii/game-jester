@@ -1,5 +1,5 @@
 use crate::ecs::{self, World};
-use crate::level::{ActionResult, GridEntityType, LevelData, PlayerAction, SokoGrid};
+use crate::level::{ActionResult, GridType, LevelData, PlayerAction, SokoGrid};
 
 use ggez::glam::{Vec2, vec2};
 use ggez::graphics::{self, Color};
@@ -35,9 +35,9 @@ impl Game {
         let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
         for renderable in self.world.iter::<GridRenderable>() {
             let color = match renderable.grid_type {
-                GridEntityType::Player => Color::GREEN,
-                GridEntityType::Box => Color::RED,
-                GridEntityType::Space => Color::WHITE,
+                GridType::Player => Color::MAGENTA,
+                GridType::Box => Color::BLUE,
+                GridType::Wall => Color::WHITE,
             };
             canvas.draw(
                 &graphics::Quad,
@@ -60,6 +60,7 @@ impl Game {
             dimensions: ivec2(5, 5),
             boxes: vec![ivec2(1, 1), ivec2(2, 2)],
             targets: vec![ivec2(3, 3)],
+            walls: vec![ivec2(0, 1), ivec2(1, 0)],
             player: ivec2(5, 5),
         };
 
@@ -70,12 +71,24 @@ impl Game {
 
         for box_pos in level_data.boxes {
             let box_ent = self.world.spawn_entity();
-            level.add_box(box_ent, box_pos);
+            level.add_entity(box_ent, GridType::Box, box_pos);
             self.world.emplace(
                 box_ent,
                 GridRenderable {
-                    grid_type: GridEntityType::Box,
+                    grid_type: GridType::Box,
                     position: box_pos,
+                },
+            );
+        }
+
+        for wall_pos in level_data.walls {
+            let wall_ent = self.world.spawn_entity();
+            level.add_entity(wall_ent, GridType::Wall, wall_pos);
+            self.world.emplace(
+                wall_ent,
+                GridRenderable {
+                    grid_type: GridType::Wall,
+                    position: wall_pos,
                 },
             );
         }
@@ -85,7 +98,7 @@ impl Game {
         self.world.emplace(
             player_ent,
             GridRenderable {
-                grid_type: GridEntityType::Player,
+                grid_type: GridType::Player,
                 position: level_data.player,
             },
         );
@@ -94,7 +107,7 @@ impl Game {
 }
 
 struct GridRenderable {
-    grid_type: GridEntityType,
+    grid_type: GridType,
     position: IVec2,
 }
 
