@@ -10,11 +10,11 @@ pub fn init() -> Box<Game> {
 }
 
 #[unsafe(no_mangle)]
-pub fn update(game: &mut Game, ctx: &mut ggez::Context) -> ggez::GameResult {
-    game.update(ctx)
+pub fn update(game: &mut Game, ctx: &mut ggez::Context) {
+    game.update(ctx);
 }
 
 #[unsafe(no_mangle)]
-pub fn render(game: &mut Game, ctx: &mut ggez::Context) -> ggez::GameResult {
-    game.render(ctx)
+pub fn render(game: &mut Game, ctx: &mut ggez::Context) {
+    game.render(ctx);
 }

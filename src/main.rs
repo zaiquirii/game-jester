@@ -21,7 +21,6 @@ fn main() -> anyhow::Result<()> {
     };
 
     event::run(ctx, event_loop, event_handler);
-    Ok(())
 }
 
 fn cargo(args: &[&str]) -> anyhow::Result<()> {
@@ -61,6 +60,15 @@ impl ggez::event::EventHandler for HotReloadEventHandler {
         }
         Ok(())
     }
+    fn key_down_event(
+        &mut self,
+        ctx: &mut ggez::Context,
+        input: ggez::input::keyboard::KeyInput,
+        _repeated: bool,
+    ) -> Result<(), ggez::GameError> {
+        println!("Key down: {:?}", input);
+        Ok(())
+    }
 }
 
 // DynamicGameFuncs is a wrapper around the dynamically loaded library and its function pointers
@@ -73,8 +81,8 @@ struct DynamicGameFuncs {
     // We need to keep the library around to ensure the symbols remain valid
     _lib: Library,
     init: Symbol<'static, unsafe extern "C" fn() -> Box<Game>>,
-    update: Symbol<'static, unsafe extern "C" fn(&mut Game) -> ggez::GameResult>,
-    render: Symbol<'static, unsafe extern "C" fn(&mut Game) -> ggez::GameResult>,
+    update: Symbol<'static, unsafe extern "C" fn(&mut Game)>,
+    render: Symbol<'static, unsafe extern "C" fn(&mut Game)>,
 }
 
 impl DynamicGameFuncs {
@@ -83,11 +91,9 @@ impl DynamicGameFuncs {
             let lib = Library::new(path)?;
             let init: Symbol<unsafe extern "C" fn() -> Box<Game>> = lib.get(b"init")?;
             let init = std::mem::transmute(init);
-            let update: Symbol<unsafe extern "C" fn(&mut Game) -> ggez::GameResult> =
-                lib.get(b"update")?;
+            let update: Symbol<unsafe extern "C" fn(&mut Game)> = lib.get(b"update")?;
             let update = std::mem::transmute(update);
-            let render: Symbol<unsafe extern "C" fn(&mut Game) -> ggez::GameResult> =
-                lib.get(b"render")?;
+            let render: Symbol<unsafe extern "C" fn(&mut Game)> = lib.get(b"render")?;
             let render = std::mem::transmute(render);
             Ok(Self {
                 _lib: lib,

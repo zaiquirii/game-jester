@@ -1,5 +1,5 @@
 use crate::ecs;
-use crate::level::{GridEntityType, LevelData, SokoGrid};
+use crate::level::{GridEntityType, LevelData, PlayerAction, SokoGrid};
 
 use ggez::glam::vec2;
 use ggez::graphics::{self, Color};
@@ -24,14 +24,49 @@ impl Game {
     }
 
     pub fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        let action = if ctx
+            .keyboard
+            .is_key_just_pressed(ggez::input::keyboard::KeyCode::Left)
+        {
+            Some(PlayerAction::MoveLeft)
+        // } else if ctx
+        //     .keyboard
+        //     .is_key_pressed(ggez::input::keyboard::KeyCode::Right)
+        // {
+        //     Some(PlayerAction::MoveRight)
+        // } else if ctx
+        //     .keyboard
+        //     .is_key_pressed(ggez::input::keyboard::KeyCode::Up)
+        // {
+        //     Some(PlayerAction::MoveUp)
+        // } else if ctx
+        //     .keyboard
+        //     .is_key_pressed(ggez::input::keyboard::KeyCode::Down)
+        // {
+        //     Some(PlayerAction::MoveDown)
+        } else {
+            None
+        };
+
+        // if let Some(action) = action {
+        //     if let Some(level) = &mut self.current_level {
+        //         if let Some(updates) = level.accept_action(action) {
+        //             for update in updates {
+        //                 println!("updating");
+        //                 self.world
+        //                     .get_mut::<GridRenderable>(update.entity.entity)
+        //                     .expect("attempted to update entity which does not have a GridRenderable component")
+        //                     .position = update.entity.position;
+        //             }
+        //         }
+        //     }
+        // }
+
         Ok(())
     }
 
     pub fn render(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         let grid_size = 50.;
-        let text = graphics::Text::new("This is a test!")
-            .set_scale(48.)
-            .clone();
         let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
         for renderable in self.world.iter::<GridRenderable>() {
             let color = match renderable.grid_type {
@@ -49,10 +84,6 @@ impl Game {
                     .color(color),
             );
         }
-        canvas.draw(
-            &text,
-            graphics::DrawParam::from(vec2(40., 40.)).color(Color::BLUE),
-        );
         canvas.finish(ctx)
     }
 

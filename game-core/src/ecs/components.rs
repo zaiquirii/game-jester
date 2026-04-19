@@ -72,6 +72,16 @@ impl<ComponentType> ComponentStore<ComponentType> {
         }
     }
 
+    pub fn get_mut(&mut self, entity: Entity) -> Option<&mut ComponentType> {
+        let ent_index = self.sparse[entity.id as usize];
+        if ent_index == SENTINEL {
+            None
+        } else {
+            assert!(entity.id == self.entities[ent_index].id);
+            Some(&mut self.components[ent_index])
+        }
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = &ComponentType> {
         self.components.iter()
     }

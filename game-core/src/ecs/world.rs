@@ -37,6 +37,16 @@ impl World {
             .emplace(entity, component);
         self
     }
+    pub fn get_mut<T: 'static>(&mut self, entity: Entity) -> Option<&mut T> {
+        let type_id = TypeId::of::<T>();
+        self.component_stores
+            .get_mut(&type_id)
+            .expect("attempted to get component type which does not exist in the world")
+            .as_any_mut()
+            .downcast_mut::<ComponentStore<T>>()
+            .expect("failed to downcast component store")
+            .get_mut(entity)
+    }
 
     pub fn register_component<T: 'static>(&mut self) {
         let type_id = TypeId::of::<T>();
