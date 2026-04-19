@@ -1,10 +1,9 @@
-use crate::ecs;
+use crate::ecs::{self, World};
 use crate::level::{GridEntityType, LevelData, PlayerAction, SokoGrid};
 
-use ggez::glam::vec2;
+use ggez::glam::{Vec2, vec2};
 use ggez::graphics::{self, Color};
-use glam::UVec2;
-use glam::uvec2;
+use glam::{IVec2, ivec2};
 
 pub struct Game {
     world: ecs::World,
@@ -24,44 +23,10 @@ impl Game {
     }
 
     pub fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        let action = if ctx
-            .keyboard
-            .is_key_just_pressed(ggez::input::keyboard::KeyCode::Left)
-        {
-            Some(PlayerAction::MoveLeft)
-        // } else if ctx
-        //     .keyboard
-        //     .is_key_pressed(ggez::input::keyboard::KeyCode::Right)
-        // {
-        //     Some(PlayerAction::MoveRight)
-        // } else if ctx
-        //     .keyboard
-        //     .is_key_pressed(ggez::input::keyboard::KeyCode::Up)
-        // {
-        //     Some(PlayerAction::MoveUp)
-        // } else if ctx
-        //     .keyboard
-        //     .is_key_pressed(ggez::input::keyboard::KeyCode::Down)
-        // {
-        //     Some(PlayerAction::MoveDown)
-        } else {
-            None
-        };
-
-        // if let Some(action) = action {
-        //     if let Some(level) = &mut self.current_level {
-        //         if let Some(updates) = level.accept_action(action) {
-        //             for update in updates {
-        //                 println!("updating");
-        //                 self.world
-        //                     .get_mut::<GridRenderable>(update.entity.entity)
-        //                     .expect("attempted to update entity which does not have a GridRenderable component")
-        //                     .position = update.entity.position;
-        //             }
-        //         }
-        //     }
-        // }
-
+        let kb = &ctx.keyboard;
+        if let Some(level) = &mut self.current_level {
+            handle_grid_input_system(&mut self.world, level, kb);
+        }
         Ok(())
     }
 
@@ -76,7 +41,7 @@ impl Game {
             canvas.draw(
                 &graphics::Quad,
                 graphics::DrawParam::new()
-                    .dest(vec2(
+                    .dest(Vec2::new(
                         renderable.position.x as f32 * grid_size,
                         renderable.position.y as f32 * grid_size,
                     ))
@@ -84,16 +49,17 @@ impl Game {
                     .color(color),
             );
         }
-        canvas.finish(ctx)
+        let res = canvas.finish(ctx);
+        res
     }
 
     fn load_test_level(&mut self) {
         // Hardcode the level for now so we can get to the interesting bits
         let level_data = LevelData {
-            dimensions: uvec2(5, 5),
-            boxes: vec![uvec2(1, 1), uvec2(2, 2)],
-            targets: vec![uvec2(3, 3)],
-            player: uvec2(5, 5),
+            dimensions: ivec2(5, 5),
+            boxes: vec![ivec2(1, 1), ivec2(2, 2)],
+            targets: vec![ivec2(3, 3)],
+            player: ivec2(5, 5),
         };
 
         let mut level = SokoGrid::new(
@@ -128,5 +94,40 @@ impl Game {
 
 struct GridRenderable {
     grid_type: GridEntityType,
-    position: UVec2,
+    position: IVec2,
+}
+
+pub fn handle_grid_input_system(
+    world: &mut World,
+    current_level: &mut SokoGrid,
+    kb: &ggez::input::keyboard::KeyboardContext,
+) {
+    let action = if kb.is_key_just_pressed(ggez::input::keyboard::KeyCode::Left) {
+        Some(PlayerAction::MoveLeft)
+    } else if kb.is_key_just_pressed(ggez::input::keyboard::KeyCode::Right) {
+        Some(PlayerAction::MoveRight)
+    } else if kb.is_key_just_pressed(ggez::input::keyboard::KeyCode::Up) {
+        Some(PlayerAction::MoveUp)
+    } else if kb.is_key_just_pressed(ggez::input::keyboard::KeyCode::Down) {
+        Some(PlayerAction::MoveDown)
+    } else {
+        None
+    };
+
+    if let Some(action) = action {
+        if let Some(updates) = current_level.accept_action(action) {
+            for update in updates {
+                println!(
+                    "entity: {:?}, type: {:?}, position: {:?}",
+                    update.entity.entity, update.entity.entity_type, update.entity.position
+                );
+                world
+                    .get_mut::<GridRenderable>(update.entity.entity)
+                    .expect(
+                        "attempted to update entity which does not have a GridRenderable component",
+                    )
+                    .position = update.entity.position;
+            }
+        }
+    }
 }

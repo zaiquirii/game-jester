@@ -1,18 +1,18 @@
 use crate::ecs::Entity;
-use ggez::glam::uvec2;
-use glam::UVec2;
+use glam::{IVec2, ivec2};
 
 pub struct LevelData {
-    pub dimensions: UVec2,
-    pub boxes: Vec<UVec2>,
-    pub targets: Vec<UVec2>,
-    pub player: UVec2,
+    pub dimensions: IVec2,
+    pub boxes: Vec<IVec2>,
+    pub targets: Vec<IVec2>,
+    pub player: IVec2,
 }
 
 pub struct CurrentLevel {
     grid: SokoGrid,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub enum GridEntityType {
     Player,
     Box,
@@ -21,7 +21,8 @@ pub enum GridEntityType {
 #[derive(Clone, Copy)]
 pub struct GridEntity {
     pub entity: Entity,
-    pub position: UVec2,
+    pub entity_type: GridEntityType,
+    pub position: IVec2,
 }
 
 pub struct SokoGrid {
@@ -38,18 +39,27 @@ impl SokoGrid {
             height,
             player: GridEntity {
                 entity: Entity::none(),
-                position: UVec2::ZERO,
+                position: IVec2::ZERO,
+                entity_type: GridEntityType::Player,
             },
             boxes: Vec::new(),
         }
     }
 
-    pub fn add_box(&mut self, entity: Entity, position: UVec2) {
-        self.boxes.push(GridEntity { entity, position });
+    pub fn add_box(&mut self, entity: Entity, position: IVec2) {
+        self.boxes.push(GridEntity {
+            entity,
+            position,
+            entity_type: GridEntityType::Box,
+        });
     }
 
-    pub fn set_player(&mut self, entity: Entity, position: UVec2) {
-        self.player = GridEntity { entity, position };
+    pub fn set_player(&mut self, entity: Entity, position: IVec2) {
+        self.player = GridEntity {
+            entity,
+            position,
+            entity_type: GridEntityType::Player,
+        };
     }
 
     pub fn accept_action(&mut self, action: PlayerAction) -> Option<Vec<EntityUpdate>> {
@@ -62,13 +72,36 @@ impl SokoGrid {
     }
 
     fn move_player(&mut self, dx: i32, dy: i32) -> Option<Vec<EntityUpdate>> {
-        self.player.position = UVec2::new(
-            (self.player.position.x as i32 + dx) as u32,
-            (self.player.position.y as i32 + dy) as u32,
-        );
-        Some(vec![EntityUpdate {
+        let mut updates = Vec::new();
+
+        let delta = ivec2(dx, dy);
+        let target_player_position = self.player.position + delta;
+        if let Some(box_index) = self.box_at(target_player_position) {
+            let b = &mut self.boxes[box_index];
+            let prev = b.position;
+            b.position += delta;
+            updates.push(EntityUpdate {
+                entity: *b,
+                previous_position: prev,
+            });
+        }
+
+        let previous_position = self.player.position;
+        self.player.position = target_player_position;
+        updates.push(EntityUpdate {
             entity: self.player,
-        }])
+            previous_position,
+        });
+
+        if updates.len() > 0 {
+            Some(updates)
+        } else {
+            None
+        }
+    }
+
+    fn box_at(&mut self, pos: IVec2) -> Option<usize> {
+        self.boxes.iter_mut().position(|b| b.position.eq(&pos))
     }
 }
 
@@ -82,4 +115,5 @@ pub enum PlayerAction {
 
 pub struct EntityUpdate {
     pub entity: GridEntity,
+    pub previous_position: IVec2,
 }

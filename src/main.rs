@@ -15,12 +15,15 @@ fn main() -> anyhow::Result<()> {
 
     let lib = DynamicGameFuncs::load(LIB_PATH)?;
     let state = unsafe { (lib.init)() };
-    let event_handler = HotReloadEventHandler {
-        game_state: *state,
+    let handler = HotReloadEventHandler {
+        game_state: state,
         lib,
     };
 
-    event::run(ctx, event_loop, event_handler);
+    // let handler = StaticGameHandler {
+    //     game: game_core::Game::new(),
+    // };
+    event::run(ctx, event_loop, handler)
 }
 
 fn cargo(args: &[&str]) -> anyhow::Result<()> {
@@ -34,7 +37,7 @@ fn cargo(args: &[&str]) -> anyhow::Result<()> {
 }
 
 struct HotReloadEventHandler {
-    game_state: Game,
+    game_state: Box<Game>,
     lib: DynamicGameFuncs,
 }
 
@@ -50,23 +53,14 @@ impl ggez::event::EventHandler for HotReloadEventHandler {
             }
         }
         unsafe {
-            (self.lib.update)(&mut self.game_state);
+            (self.lib.update)(&mut self.game_state, ctx);
         }
         Ok(())
     }
-    fn draw(&mut self, _ctx: &mut ggez::Context) -> Result<(), ggez::GameError> {
+    fn draw(&mut self, ctx: &mut ggez::Context) -> Result<(), ggez::GameError> {
         unsafe {
-            (self.lib.render)(&mut self.game_state);
+            (self.lib.render)(&mut self.game_state, ctx);
         }
-        Ok(())
-    }
-    fn key_down_event(
-        &mut self,
-        ctx: &mut ggez::Context,
-        input: ggez::input::keyboard::KeyInput,
-        _repeated: bool,
-    ) -> Result<(), ggez::GameError> {
-        println!("Key down: {:?}", input);
         Ok(())
     }
 }
@@ -81,8 +75,8 @@ struct DynamicGameFuncs {
     // We need to keep the library around to ensure the symbols remain valid
     _lib: Library,
     init: Symbol<'static, unsafe extern "C" fn() -> Box<Game>>,
-    update: Symbol<'static, unsafe extern "C" fn(&mut Game)>,
-    render: Symbol<'static, unsafe extern "C" fn(&mut Game)>,
+    update: Symbol<'static, unsafe extern "C" fn(&mut Game, &mut ggez::Context)>,
+    render: Symbol<'static, unsafe extern "C" fn(&mut Game, &mut ggez::Context)>,
 }
 
 impl DynamicGameFuncs {
@@ -91,9 +85,11 @@ impl DynamicGameFuncs {
             let lib = Library::new(path)?;
             let init: Symbol<unsafe extern "C" fn() -> Box<Game>> = lib.get(b"init")?;
             let init = std::mem::transmute(init);
-            let update: Symbol<unsafe extern "C" fn(&mut Game)> = lib.get(b"update")?;
+            let update: Symbol<unsafe extern "C" fn(&mut Game, &mut ggez::Context)> =
+                lib.get(b"update")?;
             let update = std::mem::transmute(update);
-            let render: Symbol<unsafe extern "C" fn(&mut Game)> = lib.get(b"render")?;
+            let render: Symbol<unsafe extern "C" fn(&mut Game, &mut ggez::Context)> =
+                lib.get(b"render")?;
             let render = std::mem::transmute(render);
             Ok(Self {
                 _lib: lib,
@@ -102,5 +98,18 @@ impl DynamicGameFuncs {
                 render,
             })
         }
+    }
+}
+
+struct StaticGameHandler {
+    game: Game,
+}
+
+impl ggez::event::EventHandler for StaticGameHandler {
+    fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult<()> {
+        self.game.update(ctx)
+    }
+    fn draw(&mut self, ctx: &mut ggez::Context) -> Result<(), ggez::GameError> {
+        self.game.render(ctx)
     }
 }
