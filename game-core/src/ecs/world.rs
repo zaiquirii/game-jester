@@ -72,8 +72,7 @@ impl World {
     }
 
     pub fn emplace<T: 'static>(&mut self, entity: Entity, component: T) -> &mut Self {
-        self.component_store_mut::<T>()
-            .emplace(entity, component);
+        self.component_store_mut::<T>().emplace(entity, component);
         self
     }
 
@@ -106,24 +105,14 @@ impl World {
     }
 
     pub fn iter<T: 'static>(&self) -> impl Iterator<Item = &T> {
-        let type_id = TypeId::of::<T>();
-        self.component_stores
-            .get(&type_id)
-            .expect("attempted to iterate over component type which does not exist in the world")
-            .as_any()
-            .downcast_ref::<ComponentStore<T>>()
-            .expect("failed to downcast component store")
-            .iter()
+        self.component_store::<T>().iter()
     }
 
     pub fn iter_ent<T: 'static>(&self) -> impl Iterator<Item = (Entity, &T)> {
-        let type_id = TypeId::of::<T>();
-        self.component_stores
-            .get(&type_id)
-            .expect("attempted to iterate over component type which does not exist in the world")
-            .as_any()
-            .downcast_ref::<ComponentStore<T>>()
-            .expect("failed to downcast component store")
-            .iter_ent()
+        self.component_store::<T>().iter_ent()
+    }
+
+    pub fn iter_ent_mut<T: 'static>(&mut self) -> impl Iterator<Item = (Entity, &mut T)> {
+        self.component_store_mut::<T>().iter_ent_mut()
     }
 }

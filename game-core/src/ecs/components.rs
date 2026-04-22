@@ -102,6 +102,13 @@ impl<ComponentType> ComponentStore<ComponentType> {
             .zip(self.components.iter())
             .map(|(ent, comp)| (*ent, comp))
     }
+
+    pub fn iter_ent_mut(&mut self) -> impl Iterator<Item = (Entity, &mut ComponentType)> {
+        self.entities
+            .iter()
+            .zip(self.components.iter_mut())
+            .map(|(ent, comp)| (*ent, comp))
+    }
 }
 
 mod tests {

@@ -37,4 +37,8 @@ pub struct EntityUpdate {
 
 pub struct Location(pub IVec2);
 
-pub struct Pushable {}
+pub struct Box {
+    pub covering_target: bool,
+}
+
+pub struct Target {}
