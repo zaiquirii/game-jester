@@ -1,5 +1,8 @@
 use std::any::{TypeId, type_name};
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
+use std::ops::Deref;
+use std::rc::Rc;
 
 use crate::ecs::components::ComponentStore;
 use crate::ecs::{
@@ -8,11 +11,6 @@ use crate::ecs::{
 };
 
 const MAX_ENTITY_COUNT: usize = 10000;
-
-pub struct World {
-    entity_manager: EntityManager,
-    component_stores: HashMap<TypeId, Box<dyn TypeErasedComponentStore>>,
-}
 
 pub struct EntityEditor<'a> {
     pub entity: Entity,
@@ -30,6 +28,29 @@ impl EntityEditor<'_> {
     }
 }
 
+// pub struct Components<T> {
+//     store: Ref<ComponentStore<T>>,
+// }
+
+// impl<T: 'static> Components<T> {
+//     pub fn new(store: Ref<ComponentStore) -> Self {
+//         Self {
+//             store,
+//         }
+//     }
+
+//     pub fn borrow(&self) -> std::cell::Ref<ComponentStore<T>> {
+//         std::cell::Ref::map(self.store.borrow(), |boxed_store| {
+//             boxed_store.as_any().downcast_ref::<ComponentStore<T>>().expect("failed to downcast component store")
+//         })
+//     }
+// }
+
+pub struct World {
+    entity_manager: EntityManager,
+    component_stores: HashMap<TypeId, Rc<RefCell<Box<dyn TypeErasedComponentStore>>>>,
+}
+
 impl World {
     pub fn new() -> Self {
         Self {
@@ -45,30 +66,48 @@ impl World {
         }
     }
 
-    fn component_store<T: 'static>(&self) -> &ComponentStore<T> {
+    pub fn components<T: 'static>(&self) -> Ref<ComponentStore<T>> {
+        self.component_store::<T>()
+    }
+
+    pub fn components_mut<T: 'static>(&self) -> RefMut<ComponentStore<T>> {
+        self.component_store_mut()
+    }
+
+    fn component_store<T: 'static>(&self) -> Ref<ComponentStore<T>> {
         let type_id = TypeId::of::<T>();
-        self.component_stores
+        let store = self
+            .component_stores
             .get(&type_id)
             .expect(&format!(
                 "attempted to access unregistered component type: {}",
                 type_name::<T>()
             ))
-            .as_any()
-            .downcast_ref::<ComponentStore<T>>()
-            .expect("failed to downcast component store")
+            .borrow();
+        Ref::map(store, |boxed_store| {
+            boxed_store
+                .as_any()
+                .downcast_ref::<ComponentStore<T>>()
+                .expect("failed to downcast component store")
+        })
     }
 
-    fn component_store_mut<T: 'static>(&mut self) -> &mut ComponentStore<T> {
+    fn component_store_mut<T: 'static>(&self) -> RefMut<ComponentStore<T>> {
         let type_id = TypeId::of::<T>();
-        self.component_stores
-            .get_mut(&type_id)
+        let store = self
+            .component_stores
+            .get(&type_id)
             .expect(&format!(
                 "attempted to access unregistered component type: {}",
                 type_name::<T>()
             ))
-            .as_any_mut()
-            .downcast_mut::<ComponentStore<T>>()
-            .expect("failed to downcast component store")
+            .borrow_mut();
+        RefMut::map(store, |boxed_store| {
+            boxed_store
+                .as_any_mut()
+                .downcast_mut::<ComponentStore<T>>()
+                .expect("failed to downcast component store")
+        })
     }
 
     pub fn emplace<T: 'static>(&mut self, entity: Entity, component: T) -> &mut Self {
@@ -76,21 +115,21 @@ impl World {
         self
     }
 
-    pub fn get<T: 'static>(&self, entity: Entity) -> &T {
-        self.component_store::<T>()
-            .get(entity)
-            .expect("attempted to get component which does not exist on entity")
-    }
+    // pub fn get<T: 'static>(&self, entity: Entity) -> &T {
+    //     self.component_store::<T>()
+    //         .get(entity)
+    //         .expect("attempted to get component which does not exist on entity")
+    // }
 
-    pub fn get_opt<T: 'static>(&self, entity: Entity) -> Option<&T> {
-        self.component_store::<T>().get(entity)
-    }
+    // pub fn get_opt<T: 'static>(&self, entity: Entity) -> Option<&T> {
+    //     self.component_store::<T>().get(entity)
+    // }
 
-    pub fn get_mut<T: 'static>(&mut self, entity: Entity) -> &mut T {
-        self.component_store_mut::<T>()
-            .get_mut(entity)
-            .expect("attempted to get component which does not exist on entity")
-    }
+    // pub fn get_mut<T: 'static>(&mut self, entity: Entity) -> &mut T {
+    //     self.component_store_mut::<T>()
+    //         .get_mut(entity)
+    //         .expect("attempted to get component which does not exist on entity")
+    // }
 
     pub fn register_component<T: 'static>(&mut self) -> &mut Self {
         let type_id = TypeId::of::<T>();
@@ -99,20 +138,15 @@ impl World {
         }
         self.component_stores.insert(
             type_id,
-            Box::new(ComponentStore::<T>::new(MAX_ENTITY_COUNT)),
+            Rc::new(RefCell::new(Box::new(ComponentStore::<T>::new(
+                MAX_ENTITY_COUNT,
+            )))),
         );
         self
     }
 
-    pub fn iter<T: 'static>(&self) -> impl Iterator<Item = &T> {
-        self.component_store::<T>().iter()
-    }
-
-    pub fn iter_ent<T: 'static>(&self) -> impl Iterator<Item = (Entity, &T)> {
-        self.component_store::<T>().iter_ent()
-    }
-
-    pub fn iter_ent_mut<T: 'static>(&mut self) -> impl Iterator<Item = (Entity, &mut T)> {
-        self.component_store_mut::<T>().iter_ent_mut()
-    }
+    // pub fn for_each<T1: 'static, T2: 'static>(&self, f: FnMut(&T1, &T2)) {
+    //     let store1 = self.component_store::<T1>();
+    //     let store2 = self.component_store::<T2>();
+    // }
 }

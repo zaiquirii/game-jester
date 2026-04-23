@@ -72,6 +72,10 @@ impl<ComponentType> ComponentStore<ComponentType> {
         }
     }
 
+    pub fn exists(&self, entity: Entity) -> bool {
+        self.sparse[entity.id as usize] != SENTINEL
+    }
+
     pub fn get(&self, entity: Entity) -> Option<&ComponentType> {
         let ent_index = self.sparse[entity.id as usize];
         if ent_index == SENTINEL {

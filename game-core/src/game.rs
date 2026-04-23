@@ -17,6 +17,7 @@ impl Game {
         world
             .register_component::<grid::Location>()
             .register_component::<grid::Type>()
+            .register_component::<grid::Target>()
             .register_component::<grid::Box>();
         let mut s = Self {
             world,
@@ -36,15 +37,23 @@ impl Game {
     pub fn render(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         let grid_size = 50.;
         let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
-        for (ent, grid_type) in self.world.iter_ent::<grid::Type>() {
+        let locations = self.world.components::<grid::Location>();
+        let boxes = self.world.components::<grid::Box>();
+        for (ent, grid_type) in self.world.components::<grid::Type>().iter_ent() {
             let color = match grid_type {
                 Type::Player => Color::MAGENTA,
-                Type::Box => Color::BLUE,
+                Type::Box => {
+                    if boxes.get(ent).unwrap().covering_target {
+                        Color::CYAN
+                    } else {
+                        Color::BLUE
+                    }
+                }
                 Type::Wall => Color::WHITE,
                 Type::Target => Color::GREEN,
             };
 
-            let position = self.world.get::<grid::Location>(ent).0;
+            let position = locations.get(ent).unwrap().0;
             canvas.draw(
                 &graphics::Quad,
                 graphics::DrawParam::new()
@@ -66,6 +75,14 @@ impl Game {
             player: ivec2(5, 5),
         };
 
+        for target_pos in level_data.targets {
+            self.world
+                .spawn_entity()
+                .emplace(grid::Location(target_pos))
+                .emplace(grid::Target {})
+                .emplace(grid::Type::Target);
+        }
+
         for box_pos in level_data.boxes {
             self.world
                 .spawn_entity()
@@ -81,14 +98,6 @@ impl Game {
                 .spawn_entity()
                 .emplace(grid::Location(wall_pos))
                 .emplace(grid::Type::Wall);
-        }
-
-        for target_pos in level_data.targets {
-            self.world
-                .spawn_entity()
-                .emplace(grid::Location(target_pos))
-                .emplace(grid::Target {})
-                .emplace(grid::Type::Target);
         }
 
         self.player = self
@@ -119,8 +128,11 @@ pub fn handle_grid_input_system(world: &mut World, kb: &ggez::input::keyboard::K
             println!("action failed, blocked by entity: {:?}", blocked_by);
         }
         ActionResult::Success(updates) => {
+            let mut locations = world.components_mut::<grid::Location>();
             for update in updates {
-                world.get_mut::<grid::Location>(update.entity).0 = update.new_pos;
+                if let Some(l) = locations.get_mut(update.entity) {
+                    l.0 = update.new_pos;
+                }
             }
         }
     }
@@ -136,21 +148,24 @@ fn handle_player_action(world: &mut World, action: PlayerAction) -> grid::Action
 }
 
 fn move_player(world: &mut World, delta: IVec2) -> grid::ActionResult {
-    let player = world
-        .iter_ent::<grid::Type>()
+    let types = world.components::<grid::Type>();
+    let locations = world.components::<grid::Location>();
+
+    let player = types
+        .iter_ent()
         .find(|(_, t)| **t == grid::Type::Player)
         .expect("could not find player entity in world")
         .0;
 
-    let player_pos = world.get::<grid::Location>(player).0;
+    let player_pos = locations.get(player).unwrap().0;
     let adj_pos = player_pos + delta;
     let far_pos = adj_pos + delta;
     let mut maybe_adj_entity = None;
     let mut maybe_far_entity = None;
-    for (ent, loc) in world.iter_ent::<grid::Location>() {
-        if loc.0 == adj_pos && !(*world.get::<grid::Type>(ent) == grid::Type::Target) {
+    for (ent, loc) in locations.iter_ent() {
+        if loc.0 == adj_pos && !types.get(ent).map_or(false, |t| *t == grid::Type::Target) {
             maybe_adj_entity = Some(ent);
-        } else if loc.0 == far_pos && !(*world.get::<grid::Type>(ent) == grid::Type::Target) {
+        } else if loc.0 == far_pos && !types.get(ent).map_or(false, |t| *t == grid::Type::Target) {
             maybe_far_entity = Some(ent);
         }
     }
@@ -165,7 +180,7 @@ fn move_player(world: &mut World, delta: IVec2) -> grid::ActionResult {
         // Next cell is occupied, if we can push the entity in that cell and the
         // cell beyond it is empty, move both the player and the pushed entity
         (Some(adj_ent), None) => {
-            if world.get_opt::<grid::Box>(adj_ent).is_some() {
+            if world.components::<grid::Box>().exists(adj_ent) {
                 ActionResult::Success(vec![
                     grid::EntityUpdate {
                         entity: player,
@@ -192,13 +207,15 @@ fn move_player(world: &mut World, delta: IVec2) -> grid::ActionResult {
 }
 
 fn update_box_statuses(world: &mut World) {
+    let locations = world.components::<grid::Location>();
     let target_positions = world
-        .iter_ent::<grid::Target>()
-        .map(|ent| world.get::<grid::Location>(ent.0).0)
+        .components::<grid::Target>()
+        .iter_ent()
+        .map(|ent| locations.get(ent.0).unwrap().0)
         .collect::<Vec<_>>();
 
-    for (ent, box_comp) in world.iter_ent_mut::<grid::Box>() {
-        let box_pos = world.get::<grid::Location>(ent).0;
+    for (ent, box_comp) in world.components_mut::<grid::Box>().iter_ent_mut() {
+        let box_pos = locations.get(ent).unwrap().0;
         let covering_target = target_positions.contains(&box_pos);
         box_comp.covering_target = covering_target;
     }
