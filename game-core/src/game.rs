@@ -37,31 +37,31 @@ impl Game {
     pub fn render(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         let grid_size = 50.;
         let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
-        let locations = self.world.components::<grid::Location>();
         let boxes = self.world.components::<grid::Box>();
-        for (ent, grid_type) in self.world.components::<grid::Type>().iter_ent() {
-            let color = match grid_type {
-                Type::Player => Color::MAGENTA,
-                Type::Box => {
-                    if boxes.get(ent).unwrap().covering_target {
-                        Color::CYAN
-                    } else {
-                        Color::BLUE
+        self.world.for_each(
+            |ent: ecs::Entity, grid_type: &grid::Type, location: &grid::Location| {
+                let color = match grid_type {
+                    Type::Player => Color::MAGENTA,
+                    Type::Box => {
+                        if boxes.get(ent).unwrap().covering_target {
+                            Color::CYAN
+                        } else {
+                            Color::BLUE
+                        }
                     }
-                }
-                Type::Wall => Color::WHITE,
-                Type::Target => Color::GREEN,
-            };
+                    Type::Wall => Color::WHITE,
+                    Type::Target => Color::GREEN,
+                };
 
-            let position = locations.get(ent).unwrap().0;
-            canvas.draw(
-                &graphics::Quad,
-                graphics::DrawParam::new()
-                    .dest(position.as_vec2() * grid_size)
-                    .scale(vec2(grid_size, grid_size))
-                    .color(color),
-            );
-        }
+                canvas.draw(
+                    &graphics::Quad,
+                    graphics::DrawParam::new()
+                        .dest(location.0.as_vec2() * grid_size)
+                        .scale(vec2(grid_size, grid_size))
+                        .color(color),
+                );
+            },
+        );
         let res = canvas.finish(ctx);
         res
     }

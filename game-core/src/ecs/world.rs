@@ -115,22 +115,6 @@ impl World {
         self
     }
 
-    // pub fn get<T: 'static>(&self, entity: Entity) -> &T {
-    //     self.component_store::<T>()
-    //         .get(entity)
-    //         .expect("attempted to get component which does not exist on entity")
-    // }
-
-    // pub fn get_opt<T: 'static>(&self, entity: Entity) -> Option<&T> {
-    //     self.component_store::<T>().get(entity)
-    // }
-
-    // pub fn get_mut<T: 'static>(&mut self, entity: Entity) -> &mut T {
-    //     self.component_store_mut::<T>()
-    //         .get_mut(entity)
-    //         .expect("attempted to get component which does not exist on entity")
-    // }
-
     pub fn register_component<T: 'static>(&mut self) -> &mut Self {
         let type_id = TypeId::of::<T>();
         if self.component_stores.contains_key(&type_id) {
@@ -145,8 +129,14 @@ impl World {
         self
     }
 
-    // pub fn for_each<T1: 'static, T2: 'static>(&self, f: FnMut(&T1, &T2)) {
-    //     let store1 = self.component_store::<T1>();
-    //     let store2 = self.component_store::<T2>();
-    // }
+    pub fn for_each<T1: 'static, T2: 'static, F: FnMut(Entity, &T1, &T2)>(&self, mut f: F) {
+        let store1 = self.component_store::<T1>();
+        let store2 = self.component_store::<T2>();
+
+        for (ent, t1) in store1.iter_ent() {
+            if let Some(t2) = store2.get(ent) {
+                f(ent, t1, t2)
+            }
+        }
+    }
 }
