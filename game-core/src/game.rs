@@ -207,16 +207,32 @@ fn move_player(world: &mut World, delta: IVec2) -> grid::ActionResult {
 }
 
 fn update_box_statuses(world: &mut World) {
-    let locations = world.components::<grid::Location>();
-    let target_positions = world
-        .components::<grid::Target>()
-        .iter_ent()
-        .map(|ent| locations.get(ent.0).unwrap().0)
-        .collect::<Vec<_>>();
+    let mut target_positions = Vec::new();
+    // world.for_each_better::<&grid::Target, &grid::Location>(|target, location| {
+    //     target_positions.push(location.0);
+    // });
 
-    for (ent, box_comp) in world.components_mut::<grid::Box>().iter_ent_mut() {
-        let box_pos = locations.get(ent).unwrap().0;
-        let covering_target = target_positions.contains(&box_pos);
-        box_comp.covering_target = covering_target;
-    }
+    world.for_each(
+        |_ent: ecs::Entity, _target: &grid::Target, location: &grid::Location| {
+            target_positions.push(location.0);
+        },
+    );
+    let locations = world.components::<grid::Location>();
+
+    // for (ent, box_comp) in world.components_mut::<grid::Box>().iter_ent_mut() {
+    //     let box_pos = locations.get(ent).unwrap().0;
+    //     let covering_target = target_positions.contains(&box_pos);
+    //     box_comp.covering_target = covering_target;
+    // }
+    //
+    world.for_each_better::<grid::Location>(|l| println!("this is the location: {:?}", l));
+    world.for_each_better::<&grid::Location>(|l| println!("this is the location: {:?}", l));
+    // world.for_each_better::<&mut grid::Box>(|b| {
+    //     b.covering_target = false;
+    // });
+
+    // world.for_each_better::<(&mut grid::Box, &grid::Location)>(|(box_comp, box_loc)| {
+    //     let covering_target = target_positions.contains(&box_loc.0);
+    //     box_comp.covering_target = covering_target;
+    // })
 }

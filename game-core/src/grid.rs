@@ -35,6 +35,7 @@ pub struct EntityUpdate {
     pub new_pos: IVec2,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct Location(pub IVec2);
 
 pub struct Box {
