@@ -85,6 +85,8 @@ impl World {
                 "attempted to access unregistered component type: {}",
                 type_name::<T>()
             ))
+            // .borrow();
+            // .as_ref();
             .borrow();
         Ref::map(store, |boxed_store| {
             boxed_store
@@ -142,19 +144,19 @@ impl World {
         }
     }
 
-    pub fn for_each_new<T1: ComponentView, T2: ComponentView>(
-        &self,
-        mut f: impl FnMut(T1::IterType, T2::IterType) -> (),
-    ) {
-        let store1 = self.component_store::<T1::StoreType>();
-        let store2 = self.component_store::<T2::StoreType>();
+    // pub fn for_each_new<T1: ComponentView, T2: ComponentView>(
+    //     &self,
+    //     mut f: impl FnMut(T1::IterType, T2::IterType) -> (),
+    // ) {
+    //     let store1 = self.component_store::<T1::StoreType>();
+    //     let store2 = self.component_store::<T2::StoreType>();
 
-        for (ent, t1) in store1.iter_ent() {
-            if let Some(t2) = store2.get(ent) {
-                f(t1, t2)
-            }
-        }
-    }
+    //     for (ent, t1) in store1.iter_ent() {
+    //         if let Some(t2) = store2.get(ent) {
+    //             f(t1, t2)
+    //         }
+    //     }
+    // }
 
     // pub fn for_each_better<T1: 'static, T2: 'static>(&self, mut f: impl FnMut(T1, T2) -> ()) {
     //     let store1 = self.component_store::<T1>();
@@ -169,16 +171,16 @@ impl World {
     //
 }
 
-trait ComponentView {
-    type StoreType;
-    type IterType;
-}
+// trait ComponentView {
+//     type StoreType;
+//     type IterType;
+// }
 
-struct Mut<T> {
-    phantom: PhantomData<T>,
-}
+// struct Mut<T> {
+//     phantom: PhantomData<T>,
+// }
 
-impl<T> ComponentView for Mut<T> {
-    type StoreType = T;
-    type IterType = &T;
-}
+// impl<T> ComponentView for Mut<T> {
+//     type StoreType = T;
+//     type IterType = &T;
+// }

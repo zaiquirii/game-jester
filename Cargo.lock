@@ -152,6 +152,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "atomic_refcell"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21e4227379beff4205943696e6c3e0cd809bacdf3f0edd6e3dd153e2269571a4"
+
+[[package]]
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -790,6 +796,7 @@ dependencies = [
  "anyhow",
  "ggez",
  "glam 0.32.1",
+ "sparsey",
 ]
 
 [[package]]
@@ -1038,6 +1045,12 @@ dependencies = [
  "ahash",
  "allocator-api2",
 ]
+
+[[package]]
+name = "hashbrown"
+version = "0.15.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 
 [[package]]
 name = "hashbrown"
@@ -2338,6 +2351,17 @@ dependencies = [
  "wayland-client",
  "wayland-cursor",
  "wayland-protocols",
+]
+
+[[package]]
+name = "sparsey"
+version = "0.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb745f2600e2b85825349ae307cbddba8061afa1dc83f3901bf3cc546fc2c542"
+dependencies = [
+ "atomic_refcell",
+ "hashbrown 0.15.5",
+ "rustc-hash 2.1.2",
 ]
 
 [[package]]

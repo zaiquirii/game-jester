@@ -1,6 +1,4 @@
-mod ecs;
 mod game;
-mod grid;
 
 pub use game::Game;
 

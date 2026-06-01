@@ -8,5 +8,6 @@ crate-type = ["rlib", "dylib"]
 
 [dependencies]
 ggez = "0.9.3"
+sparsey = "0.13.3"
 anyhow = "1.0"
 glam = {version = "0.32", features = ["mint"] }

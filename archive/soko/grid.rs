@@ -1,4 +1,3 @@
-use crate::ecs;
 use glam::{IVec2, ivec2};
 
 pub struct LevelData {
@@ -26,11 +25,11 @@ pub enum PlayerAction {
 
 pub enum ActionResult {
     Success(Vec<EntityUpdate>),
-    Failure { blocked_by: ecs::Entity },
+    Failure { blocked_by: sparsey::Entity },
 }
 
 pub struct EntityUpdate {
-    pub entity: ecs::Entity,
+    pub entity: sparsey::Entity,
     pub prev_pos: IVec2,
     pub new_pos: IVec2,
 }
@@ -38,8 +37,10 @@ pub struct EntityUpdate {
 #[derive(Clone, Copy, Debug)]
 pub struct Location(pub IVec2);
 
-pub struct Box {
-    pub covering_target: bool,
+pub struct Box {}
+
+pub struct Target {
+    pub covered: bool,
 }
 
-pub struct Target {}
+pub struct Player {}

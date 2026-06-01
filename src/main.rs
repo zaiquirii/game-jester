@@ -43,7 +43,7 @@ struct HotReloadEventHandler {
 
 impl ggez::event::EventHandler for HotReloadEventHandler {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult<()> {
-        if ctx.keyboard.is_key_just_pressed(KeyCode::R) {
+        if ctx.keyboard.is_key_just_pressed(KeyCode::B) {
             match cargo(&["build", "-p", "game-core"]) {
                 Ok(_) => {
                     println!("Build successful! Reloading library...");
@@ -51,6 +51,9 @@ impl ggez::event::EventHandler for HotReloadEventHandler {
                 }
                 Err(e) => println!("Error building project: {}", e),
             }
+        }
+        if ctx.keyboard.is_key_just_pressed(KeyCode::R) {
+            self.game_state = unsafe { (self.lib.init)() };
         }
         unsafe {
             (self.lib.update)(&mut self.game_state, ctx);
