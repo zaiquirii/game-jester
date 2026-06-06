@@ -1,4 +1,4 @@
-use std::{fmt::UpperExp, mem::transmute, path::Path, process::Command};
+use std::{env, fmt::UpperExp, mem::transmute, path::Path, process::Command};
 
 use game_core::Game;
 use ggez::{ContextBuilder, conf, event, input::keyboard::KeyCode};
@@ -8,20 +8,25 @@ const LIB_PATH: &str = "./target/debug/libgame_core.dylib";
 
 // MAIN DEV
 fn main() -> anyhow::Result<()> {
+    let path = env::current_dir()?;
+
+    // Print using .display() to format the PathBuf safely
+    println!("The current directory is: {}", path.display());
     let c = conf::Conf::new();
-    let (ctx, event_loop) = ContextBuilder::new("jester_hot_reload", "zaiquiri")
-        .default_conf(c)
+    let (mut ctx, event_loop) = ContextBuilder::new("jester_hot_reload", "zaiquiri")
+        // .default_conf(c)
+        .add_resource_path("/Users/zaiquiri/projects/games/jester/resources")
         .build()?;
 
     let lib = DynamicGameFuncs::load(LIB_PATH)?;
-    let state = unsafe { (lib.init)() };
+    let state = unsafe { (lib.init)(&mut ctx) };
     let handler = HotReloadEventHandler {
         game_state: state,
         lib,
     };
 
     // let handler = StaticGameHandler {
-    //     game: game_core::Game::new(),
+    //     game: game_core::Game::new(&mut ctx),
     // };
     event::run(ctx, event_loop, handler)
 }
@@ -53,7 +58,7 @@ impl ggez::event::EventHandler for HotReloadEventHandler {
             }
         }
         if ctx.keyboard.is_key_just_pressed(KeyCode::R) {
-            self.game_state = unsafe { (self.lib.init)() };
+            self.game_state = unsafe { (self.lib.init)(ctx) };
         }
         unsafe {
             (self.lib.update)(&mut self.game_state, ctx);
@@ -77,7 +82,7 @@ impl ggez::event::EventHandler for HotReloadEventHandler {
 struct DynamicGameFuncs {
     // We need to keep the library around to ensure the symbols remain valid
     _lib: Library,
-    init: Symbol<'static, unsafe extern "C" fn() -> Box<Game>>,
+    init: Symbol<'static, unsafe extern "C" fn(&mut ggez::Context) -> Box<Game>>,
     update: Symbol<'static, unsafe extern "C" fn(&mut Game, &mut ggez::Context)>,
     render: Symbol<'static, unsafe extern "C" fn(&mut Game, &mut ggez::Context)>,
 }
@@ -86,7 +91,8 @@ impl DynamicGameFuncs {
     fn load(path: &str) -> anyhow::Result<Self> {
         unsafe {
             let lib = Library::new(path)?;
-            let init: Symbol<unsafe extern "C" fn() -> Box<Game>> = lib.get(b"init")?;
+            let init: Symbol<unsafe extern "C" fn(&mut ggez::Context) -> Box<Game>> =
+                lib.get(b"init")?;
             let init = std::mem::transmute(init);
             let update: Symbol<unsafe extern "C" fn(&mut Game, &mut ggez::Context)> =
                 lib.get(b"update")?;

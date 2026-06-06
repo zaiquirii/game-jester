@@ -1,10 +1,13 @@
+mod debug;
+mod engine;
 mod game;
+mod logistics;
 
 pub use game::Game;
 
 #[unsafe(no_mangle)]
-pub fn init() -> Box<Game> {
-    Box::new(Game::new())
+pub fn init(ctx: &mut ggez::Context) -> Box<Game> {
+    Box::new(Game::new(ctx))
 }
 
 #[unsafe(no_mangle)]
