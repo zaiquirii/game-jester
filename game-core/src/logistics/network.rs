@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use ggez::graphics;
 use sparsey::Entity;
 
 use crate::engine;
@@ -9,12 +10,6 @@ pub type NetworkId = u32;
 pub struct NetworkNode {
     pub network: NetworkId,
     pub range: f32,
-}
-
-pub fn update_network_system(world: &mut sparsey::World, debug: &mut engine::DebugLines) {
-    world.for_each::<(&engine::Location, &NetworkNode)>(|(loc, node)| {
-        // debug.add_circle(loc.0, 20., graphics::Color::GREEN);
-    });
 }
 
 pub struct Networks {
@@ -51,5 +46,19 @@ impl Networks {
             },
         );
         self.edges.insert(ent, edges);
+    }
+}
+
+pub fn debug_draw_system(world: &sparsey::World, resources: &engine::Resources) {
+    let mut debug = resources.get_mut::<engine::DebugLines>();
+    let networks = resources.get::<Networks>();
+
+    let mut locations = world.query_one::<(&engine::Location)>();
+    for (left_ent, others) in networks.edges.iter() {
+        let left_loc = locations.get(*left_ent).unwrap().0;
+        for right_ent in others.iter() {
+            let right_loc = locations.get(*right_ent).unwrap().0;
+            debug.add_line(left_loc, right_loc, graphics::Color::YELLOW);
+        }
     }
 }

@@ -68,15 +68,12 @@ impl Game {
                 &self.resources.get::<engine::Sprites>(),
                 delta_ms,
             );
-            logistics::update_network_system(
-                &mut self.world,
-                &mut self.resources.get_mut::<engine::DebugLines>(),
-            );
         }
         Ok(())
     }
 
     pub fn render(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        logistics::debug_draw_system(&self.world, &self.resources);
         let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
         engine::render_sprites_system(
             &mut canvas,

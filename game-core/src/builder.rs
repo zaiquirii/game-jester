@@ -28,6 +28,7 @@ impl State {
 pub fn update_state_system(world: &mut sparsey::World, resources: &engine::Resources) {
     let input = resources.get::<input::State>();
     let state = resources.get::<State>();
+    let mut networks = resources.get_mut::<logistics::Networks>();
 
     world
         .query_one::<&mut engine::Location>()
@@ -37,7 +38,7 @@ pub fn update_state_system(world: &mut sparsey::World, resources: &engine::Resou
         });
 
     if input.select_pressed() {
-        world.create((
+        let ent = world.create((
             engine::Location(input.selector_pos()),
             engine::SpriteShape {
                 shape: engine::Shape::Circle { radius: 25.0 },
@@ -49,5 +50,6 @@ pub fn update_state_system(world: &mut sparsey::World, resources: &engine::Resou
                 range: 100.,
             },
         ));
+        networks.track_entity(world, ent);
     }
 }
