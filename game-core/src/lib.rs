@@ -1,6 +1,7 @@
-mod debug;
+mod builder;
 mod engine;
 mod game;
+mod input;
 mod logistics;
 
 pub use game::Game;

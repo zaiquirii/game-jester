@@ -1,5 +1,5 @@
-use ggez::glam::Vec2;
-use ggez::{glam::vec2, graphics};
+use ggez::graphics;
+use glam::{Vec2, vec2};
 
 pub struct DebugLines {
     circle_mesh: graphics::Mesh,
@@ -29,7 +29,7 @@ impl DebugLines {
 
     pub fn add_line(&mut self, start: Vec2, end: Vec2, color: graphics::Color) -> &mut Self {
         let length = (end - start).length();
-        let angle = vec2(1., 0.).angle_between(end - start);
+        let angle = vec2(1., 0.).angle_to(end - start);
         self.lines.push(
             graphics::DrawParam::new()
                 .dest(start)

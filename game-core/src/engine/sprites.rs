@@ -1,15 +1,30 @@
 use ggez::{
     glam::{UVec2, vec2},
-    graphics,
+    graphics::{self, MeshBuilder},
 };
 
+use crate::engine::Location;
+
 pub struct Sprites {
+    meshes: Vec<graphics::Mesh>,
     sprite_sheets: Vec<SpriteSheet>,
 }
 
 impl Sprites {
-    pub fn new() -> Self {
+    pub fn new(ctx: &mut ggez::Context) -> Self {
+        let meshes = vec![
+            graphics::Mesh::new_circle(
+                ctx,
+                graphics::DrawMode::fill(),
+                vec2(0., 0.),
+                0.5,
+                0.005,
+                graphics::Color::WHITE,
+            )
+            .unwrap(),
+        ];
         Self {
+            meshes,
             sprite_sheets: Vec::new(),
         }
     }
@@ -90,7 +105,37 @@ pub fn advance_sprite_animations_system(
     })
 }
 
-pub fn render_animated_sprite_system(
+pub fn render_sprites_system(
+    canvas: &mut graphics::Canvas,
+    world: &mut sparsey::World,
+    sprites: &Sprites,
+) {
+    // world.for_each::<&AnimatedSprite>(|sprite| {
+    //     sprites.draw(canvas, sprite);
+    // })
+    render_sprite_shapes(canvas, world, sprites);
+    render_animated_sprites(canvas, world, sprites);
+}
+
+fn render_sprite_shapes(
+    canvas: &mut graphics::Canvas,
+    world: &mut sparsey::World,
+    sprites: &Sprites,
+) {
+    world.for_each::<(&Location, &SpriteShape)>(|(loc, shape)| match shape.shape {
+        Shape::Circle { radius } => {
+            canvas.draw(
+                &sprites.meshes[0],
+                graphics::DrawParam::new()
+                    .dest(loc.0)
+                    .scale(vec2(radius, radius))
+                    .color(shape.color),
+            );
+        }
+    })
+}
+
+fn render_animated_sprites(
     canvas: &mut graphics::Canvas,
     world: &mut sparsey::World,
     sprites: &Sprites,
@@ -98,6 +143,17 @@ pub fn render_animated_sprite_system(
     world.for_each::<&AnimatedSprite>(|sprite| {
         sprites.draw(canvas, sprite);
     })
+}
+
+pub struct SpriteShape {
+    pub shape: Shape,
+    pub color: graphics::Color,
+    pub filled: bool,
+}
+
+pub enum Shape {
+    // Rect(graphics::Rect),
+    Circle { radius: f32 },
 }
 
 pub struct SpriteSheet {
